@@ -22,7 +22,6 @@
 
 using System;
 using System.IO;
-using System.Reflection;
 using System.Runtime.InteropServices;
 
 namespace CurlSharp
@@ -46,33 +45,23 @@ namespace CurlSharp
 
         static NativeMethods()
         {
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-            {
-                switch (RuntimeInformation.OSArchitecture)
-                {
-                    case Architecture.X64:
-                        SetDllDirectory(Path.Combine(AssemblyDirectory, LIB_DIR_WIN64));
-                        break;
-                    case Architecture.X86:
-                        SetDllDirectory(Path.Combine(AssemblyDirectory, LIB_DIR_WIN32));
-                        break;
-                }
-            }
+            SetDllDirectory(Path.Combine(AssemblyDirectory, LIB_DIR_WIN32));
+
 #if USE_LIBCURLSHIM
             if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
                 throw new InvalidOperationException("Can not run on other platform than Win NET");
 #endif
         }
-        
+
         [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
         [return: MarshalAs(UnmanagedType.Bool)]
         private static extern bool SetDllDirectory(string lpPathName);
-        
+
         private static string AssemblyDirectory
         {
             get
             {
-                var codeBase = typeof(NativeMethods).GetTypeInfo().Assembly.CodeBase;
+                var codeBase = typeof(NativeMethods).Assembly.CodeBase;
                 var uri = new UriBuilder(codeBase);
                 var path = Uri.UnescapeDataString(uri.Path);
                 return Path.GetDirectoryName(path);
@@ -334,7 +323,7 @@ namespace CurlSharp
             {
                 var handle = Create();
                 handle.fd_count = 1;
-                handle.fd_array[0] = (uint) socket;
+                handle.fd_array[0] = (uint)socket;
                 return handle;
             }
         }
@@ -400,24 +389,12 @@ namespace CurlSharp
         {
             int result;
 
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-            {
-                result = select_win(
-                    nfds, // number of sockets, (ignored in winsock)
-                    ref readfds, // read sockets to watch
-                    ref writefds, // write sockets to watch
-                    ref exceptfds, // error sockets to watch
-                    ref timeout);
-            }
-            else
-            {
-                result = select_unix(
-                    nfds, // number of sockets, (ignored in winsock)
-                    ref readfds, // read sockets to watch
-                    ref writefds, // write sockets to watch
-                    ref exceptfds, // error sockets to watch
-                    ref timeout);
-            }
+            result = select_win(
+                nfds, // number of sockets, (ignored in winsock)
+                ref readfds, // read sockets to watch
+                ref writefds, // write sockets to watch
+                ref exceptfds, // error sockets to watch
+                ref timeout);
 
             return result;
         }
